@@ -43,7 +43,7 @@
               firebase-tools
               eas-cli
 
-              # AI coding agent (CLI; also backs the sst-dev.opencode VS Code extension)
+              # AI coding agent (CLI; also backs the sst-dev.opencode Cursor extension)
               opencode
             ];
 

@@ -8,7 +8,7 @@ set -euo pipefail
 # 「セットアップ前」の状態に戻します。動作確認をやり直したいときに使います。
 #
 # Usage (in WSL Ubuntu):
-#   bash <(curl -fsSL https://raw.githubusercontent.com/ncc-toda/2026-add-diary-app/main/cleanup.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/ncc-toda/2026-add-diary-app/main/scripts/cleanup.sh)
 #
 # Optional:
 #   PROJECT_DIR=~/work/diary-app bash <(curl -fsSL ...)
@@ -20,7 +20,7 @@ set -euo pipefail
 #   - GitHub CLI (gh) とログイン状態
 #   - Nix
 #   - ~/.bashrc の direnv フック
-#   - VS Code 拡張
+#   - Cursor 拡張
 # ============================================================
 
 PROJECT_PARENT_DIR="${PROJECT_PARENT_DIR:-$HOME/projects}"
@@ -65,7 +65,6 @@ cat <<EOF
 以下を削除します:
 
   - プロジェクトディレクトリ: $PROJECT_DIR
-    (.env.local も一緒に消えます)
 EOF
 
 if [ -n "$fork_to_delete" ]; then
@@ -124,6 +123,6 @@ cat <<EOF
 
 setup.sh をもう一度実行すれば、最初からセットアップできます:
 
-  bash <(curl -fsSL https://raw.githubusercontent.com/ncc-toda/2026-add-diary-app/main/setup.sh)
+  bash <(curl -fsSL https://raw.githubusercontent.com/ncc-toda/2026-add-diary-app/main/scripts/setup.sh)
 
 EOF

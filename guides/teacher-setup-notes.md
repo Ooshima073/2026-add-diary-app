@@ -26,7 +26,7 @@ git push origin main
 3. 生徒に以下のワンライナーを共有
 
 ```
-bash <(curl -fsSL https://raw.githubusercontent.com/ncc-toda/2026-add-diary-app/main/setup.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/ncc-toda/2026-add-diary-app/main/scripts/setup.sh)
 ```
 
 ## Apple Developer
@@ -52,6 +52,12 @@ just install
 just start
 ```
 
+## Anthropic API Key について
+
+生徒は Cursor のターミナルで `opencode` を起動し、TUI 上で API Key を入力します。
+リポジトリには `.env.local` などの仕組みは置きません (key を git に混入させない最大のガード)。
+OpenCode はキーを Cursor のセッション (OpenCode 自身の config) に保持します。
+
 ## トラブルシューティング (生徒対応用)
 
 | 症状 | 原因の可能性 | 確認コマンド |
@@ -61,7 +67,8 @@ just start
 | Expo Go で繋がらない | LAN モードが学校 Wi-Fi で機能しない | `just start` (tunnel) に切り替え |
 | `pnpm install` が極端に遅い | `/mnt/c/...` 配下で作業している | プロジェクトを `~/projects/2026-add-diary-app` に移動 |
 | `gh: command not found` | `setup.sh` のインストールが途中で失敗 | `setup.sh` を再実行 |
-| VS Code が Windows モードで開く | WSL 内で `code .` していない | WSL の bash から `cd ~/projects/2026-add-diary-app && code .` |
+| Cursor が Windows モードで開く | WSL 内で `cursor .` していない | WSL の bash から `cd ~/projects/2026-add-diary-app && cursor .` |
+| `opencode` で API Key を聞かれ続ける | TUI で正しく登録できていない | `opencode auth login` をやり直す |
 
 ## 配布物の更新
 

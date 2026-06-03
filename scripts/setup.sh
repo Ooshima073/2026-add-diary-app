@@ -5,7 +5,7 @@ set -euo pipefail
 # Diary App Hands-on Setup Script
 #
 # Usage (in WSL Ubuntu):
-#   bash <(curl -fsSL https://raw.githubusercontent.com/ncc-toda/2026-add-diary-app/main/setup.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/ncc-toda/2026-add-diary-app/main/scripts/setup.sh)
 #
 # Optional: put the project somewhere other than ~/projects/2026-add-diary-app
 #   PROJECT_DIR=~/work/diary-app bash <(curl -fsSL ...)
@@ -149,37 +149,23 @@ EOF
 fi
 
 # ============================================================
-# .env.local 雛形作成 (中身は手動編集)
-# ============================================================
-
-if [ ! -f ".env.local" ]; then
-  cat > .env.local <<'EOF'
-# Anthropic API Key (for opencode VS Code extension)
-# Get yours from https://console.anthropic.com/
-ANTHROPIC_API_KEY=
-EOF
-  chmod 600 .env.local
-  info ".env.local の雛形を作成しました。後で VS Code で開いて API Key を記入してください。"
-fi
-
-# ============================================================
 # direnv allow
 # ============================================================
 
 direnv allow .
 
 # ============================================================
-# VS Code resolution
+# Cursor resolution
 #
-# Cannot rely on `command -v code` alone: students may have
+# Cannot rely on `command -v cursor` alone: students may have
 # appendWindowsPath=false in /etc/wsl.conf, which hides Windows PATH
-# from WSL even when VS Code is fully installed. Probe well-known
+# from WSL even when Cursor is fully installed. Probe well-known
 # /mnt/c paths in that case.
 #
 # Same for winget.exe (lives under WindowsApps).
 #
-# Must invoke the WSL-side `code` bash wrapper (NOT cmd.exe /c code) so
-# VS Code engages Remote-WSL when opening project files.
+# Must invoke the WSL-side `cursor` bash wrapper (NOT cmd.exe /c cursor) so
+# Cursor engages its WSL remote when opening project files.
 # ============================================================
 
 WIN_CMD="/mnt/c/Windows/System32/cmd.exe"
@@ -190,19 +176,22 @@ get_win_username() {
   fi
 }
 
-find_code_bin() {
-  if command -v code >/dev/null 2>&1; then
-    command -v code
+find_cursor_bin() {
+  if command -v cursor >/dev/null 2>&1; then
+    command -v cursor
     return 0
   fi
   local win_user
   win_user="$(get_win_username)"
   local candidates=(
-    "/mnt/c/Program Files/Microsoft VS Code/bin/code"
-    "/mnt/c/Program Files (x86)/Microsoft VS Code/bin/code"
+    "/mnt/c/Program Files/Cursor/resources/app/bin/cursor"
+    "/mnt/c/Program Files (x86)/Cursor/resources/app/bin/cursor"
   )
   if [ -n "$win_user" ]; then
-    candidates+=("/mnt/c/Users/$win_user/AppData/Local/Programs/Microsoft VS Code/bin/code")
+    candidates+=(
+      "/mnt/c/Users/$win_user/AppData/Local/Programs/cursor/resources/app/bin/cursor"
+      "/mnt/c/Users/$win_user/AppData/Local/Programs/Cursor/resources/app/bin/cursor"
+    )
   fi
   for c in "${candidates[@]}"; do
     if [ -x "$c" ]; then
@@ -230,73 +219,76 @@ find_winget_bin() {
   return 1
 }
 
-CODE_BIN="$(find_code_bin || true)"
+CURSOR_BIN="$(find_cursor_bin || true)"
 
-VSCODE_AVAILABLE=0
-if [ -n "$CODE_BIN" ]; then
-  VSCODE_AVAILABLE=1
-  info "VS Code を検出しました: $CODE_BIN"
+CURSOR_AVAILABLE=0
+if [ -n "$CURSOR_BIN" ]; then
+  CURSOR_AVAILABLE=1
+  info "Cursor を検出しました: $CURSOR_BIN"
 else
   WINGET_BIN="$(find_winget_bin || true)"
   if [ -n "$WINGET_BIN" ]; then
-    info "Windows 側に VS Code をインストールします (winget, user scope)"
+    info "Windows 側に Cursor をインストールします (winget, user scope)"
     if "$WINGET_BIN" install \
-        --id Microsoft.VisualStudioCode \
+        --id Anysphere.Cursor \
         --silent \
         --scope user \
         --accept-package-agreements \
         --accept-source-agreements; then
-      CODE_BIN="$(find_code_bin || true)"
-      if [ -n "$CODE_BIN" ]; then
-        VSCODE_AVAILABLE=1
+      CURSOR_BIN="$(find_cursor_bin || true)"
+      if [ -n "$CURSOR_BIN" ]; then
+        CURSOR_AVAILABLE=1
       else
-        warn "VS Code をインストールしましたが code 実行ファイルを見つけられませんでした。"
+        warn "Cursor をインストールしましたが cursor 実行ファイルを見つけられませんでした。"
       fi
     else
-      warn "winget での VS Code インストールに失敗しました。https://code.visualstudio.com/ から手動でインストールしてください。"
+      warn "winget での Cursor インストールに失敗しました。https://cursor.com/ から手動でインストールしてください。"
     fi
   else
-    warn "VS Code も winget も見つかりません。https://code.visualstudio.com/ から VS Code を手動でインストールしてください。"
+    warn "Cursor も winget も見つかりません。https://cursor.com/ から Cursor を手動でインストールしてください。"
   fi
 fi
 
-run_code() {
-  if [ -n "$CODE_BIN" ]; then
-    "$CODE_BIN" "$@"
+run_cursor() {
+  if [ -n "$CURSOR_BIN" ]; then
+    "$CURSOR_BIN" "$@"
   else
     return 1
   fi
 }
 
-# Expose `code` as a normal command in the student's PATH. With
-# appendWindowsPath=false the Windows VS Code bin dir never enters WSL
+# Expose `cursor` as a normal command in the student's PATH. With
+# appendWindowsPath=false the Windows Cursor bin dir never enters WSL
 # PATH, so we drop a symlink into /usr/local/bin (which IS in PATH).
-# The VS Code bash wrapper uses readlink -f to find its real location,
+# The Cursor bash wrapper uses readlink -f to find its real location,
 # so symlinking it works correctly.
-if [ "$VSCODE_AVAILABLE" = "1" ] && [ -n "$CODE_BIN" ] && [ ! -e /usr/local/bin/code ] \
-   && [ "$CODE_BIN" != "/usr/local/bin/code" ]; then
-  info "code コマンドを /usr/local/bin/code にリンクします"
-  sudo ln -s "$CODE_BIN" /usr/local/bin/code
+if [ "$CURSOR_AVAILABLE" = "1" ] && [ -n "$CURSOR_BIN" ] && [ ! -e /usr/local/bin/cursor ] \
+   && [ "$CURSOR_BIN" != "/usr/local/bin/cursor" ]; then
+  info "cursor コマンドを /usr/local/bin/cursor にリンクします"
+  sudo ln -s "$CURSOR_BIN" /usr/local/bin/cursor
 fi
 
 # ============================================================
-# VS Code Extensions
+# Cursor Extensions
+#
+# .vscode/extensions.json の recommendations でも初回起動時に
+# ポップアップが出るが、念のため CLI からも入れておく。
+# Cursor は Open VSX を使うので、Open VSX に無い拡張は失敗するが致命的ではない。
 # ============================================================
 
-if [ "$VSCODE_AVAILABLE" = "1" ]; then
-  info "VS Code 拡張をインストールします"
+if [ "$CURSOR_AVAILABLE" = "1" ]; then
+  info "Cursor 拡張をインストールします"
   for ext in \
-    ms-vscode-remote.remote-wsl \
     esbenp.prettier-vscode \
     dbaeumer.vscode-eslint \
     usernamehw.errorlens \
     expo.vscode-expo-tools \
     mkhl.direnv \
     sst-dev.opencode; do
-    run_code --install-extension "$ext" || warn "拡張 $ext のインストールに失敗しました"
+    run_cursor --install-extension "$ext" || warn "拡張 $ext のインストールに失敗しました (Open VSX に無い場合があります)"
   done
 else
-  warn "VS Code が利用できないため、拡張のインストールをスキップしました。"
+  warn "Cursor が利用できないため、拡張のインストールをスキップしました。"
 fi
 
 # ============================================================
@@ -311,12 +303,12 @@ else
 fi
 
 # ============================================================
-# Open VS Code (WSL Remote として起動)
+# Open Cursor (WSL Remote として起動)
 # ============================================================
 
-if [ "$VSCODE_AVAILABLE" = "1" ]; then
-  info "VS Code を開きます"
-  run_code .
+if [ "$CURSOR_AVAILABLE" = "1" ]; then
+  info "Cursor を開きます"
+  run_cursor .
 fi
 
 # ============================================================
@@ -333,7 +325,8 @@ cat <<EOF
 
 次にやること:
 
-  1. VS Code で .env.local を開き、ANTHROPIC_API_KEY を記入する
+  1. Cursor のターミナルで 'opencode' を実行し、TUI の指示に従って
+     Anthropic API Key を入力する (キーは Cursor のセッションに保持される)
   2. スマホに Expo Go をインストールする
        iPhone  -> App Store
        Android -> Google Play

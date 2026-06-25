@@ -14,11 +14,8 @@ import { router } from 'expo-router';
 
 import { useEntries } from '../store/entries';
 
-const MOODS = ['☀️', '☁️', '🌧', '☕️', '🍜', '📚', '✨', '💭'];
-
 export default function NewEntry() {
   const { addEntry } = useEntries();
-  const [mood, setMood] = useState<string>(MOODS[0]);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
 
@@ -26,7 +23,12 @@ export default function NewEntry() {
 
   const handleSave = () => {
     if (!canSave) return;
-    addEntry({ mood, title: title.trim(), body: body.trim() });
+    addEntry({
+      title: title.trim(),
+      body: body.trim(),
+      date: new Date(),
+      images: [],
+    });
     router.back();
   };
 
@@ -54,22 +56,6 @@ export default function NewEntry() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.sectionLabel}>気分</Text>
-          <View style={styles.moodRow}>
-            {MOODS.map((m) => {
-              const active = m === mood;
-              return (
-                <Pressable
-                  key={m}
-                  onPress={() => setMood(m)}
-                  style={[styles.moodChip, active && styles.moodChipActive]}
-                >
-                  <Text style={styles.moodEmoji}>{m}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
           <TextInput
             style={styles.titleInput}
             placeholder="タイトル"
@@ -139,36 +125,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingBottom: 40,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    color: SUB,
-    letterSpacing: 2,
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  moodRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 24,
-  },
-  moodChip: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  moodChipActive: {
-    borderColor: ACCENT,
-    backgroundColor: '#FBEFE3',
-  },
-  moodEmoji: {
-    fontSize: 22,
+    paddingTop: 8,
   },
   titleInput: {
     fontSize: 20,

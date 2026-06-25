@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -9,7 +9,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
-import { useEntries } from '../store/entries';
+import { AddEntryButton } from '../components/AddEntryButton';
+import { EmptyState } from '../components/EmptyState';
+import { EntryCard } from '../components/EntryCard';
+import { SearchBar } from '../components/SearchBar';
+import { searchEntries, useEntries } from '../store/entries';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -26,9 +30,16 @@ function formatDay(date: Date) {
 
 export default function Index() {
   const { entries } = useEntries();
+  const [query, setQuery] = useState('');
   const today = useMemo(() => new Date(), []);
   const { day: todayDay, weekday: todayWeekday } = formatDay(today);
 
+  const filteredEntries = useMemo(
+    () => searchEntries(entries, query),
+    [entries, query],
+  );
+
+  const isSearching = query.trim().length > 0;
   const openNew = () => router.push('/new');
 
   return (
@@ -37,59 +48,62 @@ export default function Index() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
           <Text style={styles.headerMonth}>{formatHeader(today)}</Text>
           <Text style={styles.headerTitle}>日記</Text>
         </View>
 
-        <Pressable style={styles.todayCard} onPress={openNew}>
-          <View style={styles.todayDateColumn}>
-            <Text style={styles.todayWeekday}>{todayWeekday}</Text>
-            <Text style={styles.todayDay}>{todayDay}</Text>
-          </View>
-          <View style={styles.todayBody}>
-            <Text style={styles.todayLabel}>今日の記録</Text>
-            <Text style={styles.todayPrompt}>
-              タップして、今日のことを書きとめよう。
-            </Text>
-          </View>
-          <Text style={styles.todayChevron}>＋</Text>
-        </Pressable>
+        <SearchBar value={query} onChangeText={setQuery} />
 
-        <Text style={styles.sectionLabel}>これまでの日記</Text>
+        {!isSearching && (
+          <Pressable style={styles.todayCard} onPress={openNew}>
+            <View style={styles.todayDateColumn}>
+              <Text style={styles.todayWeekday}>{todayWeekday}</Text>
+              <Text style={styles.todayDay}>{todayDay}</Text>
+            </View>
+            <View style={styles.todayBody}>
+              <Text style={styles.todayLabel}>今日の記録</Text>
+              <Text style={styles.todayPrompt}>
+                タップして、今日のことを書きとめよう。
+              </Text>
+            </View>
+            <Text style={styles.todayChevron}>＋</Text>
+          </Pressable>
+        )}
 
-        <View style={styles.list}>
-          {entries.map((entry) => {
-            const { day, weekday } = formatDay(entry.date);
-            return (
-              <Pressable key={entry.id} style={styles.entry}>
-                <View style={styles.entryDateColumn}>
-                  <Text style={styles.entryWeekday}>{weekday}</Text>
-                  <Text style={styles.entryDay}>{day}</Text>
-                </View>
-                <View style={styles.entryBody}>
-                  <View style={styles.entryTitleRow}>
-                    <Text style={styles.entryMood}>{entry.mood}</Text>
-                    <Text style={styles.entryTitle} numberOfLines={1}>
-                      {entry.title || '(無題)'}
-                    </Text>
-                  </View>
-                  {entry.body.length > 0 && (
-                    <Text style={styles.entryExcerpt} numberOfLines={2}>
-                      {entry.body}
-                    </Text>
-                  )}
-                </View>
-              </Pressable>
-            );
-          })}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>
+            {isSearching ? '検索結果' : 'これまでの日記'}
+          </Text>
+          {isSearching && (
+            <Text style={styles.resultCount}>{filteredEntries.length}件</Text>
+          )}
         </View>
+
+        {filteredEntries.length === 0 ? (
+          <EmptyState
+            title={
+              isSearching ? '該当する日記がありません' : '日記がまだありません'
+            }
+            message={
+              isSearching
+                ? '別のキーワードで試してみてください。'
+                : 'ボタンをタップして、最初の日記を書いてみましょう。'
+            }
+            onAdd={isSearching ? undefined : openNew}
+          />
+        ) : (
+          <View style={styles.list}>
+            {filteredEntries.map((entry) => (
+              <EntryCard key={entry.id} entry={entry} />
+            ))}
+          </View>
+        )}
       </ScrollView>
 
-      <Pressable style={styles.fab} onPress={openNew}>
-        <Text style={styles.fabIcon}>✎</Text>
-      </Pressable>
+      <AddEntryButton onPress={openNew} />
     </SafeAreaView>
   );
 }
@@ -114,7 +128,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 8,
-    paddingBottom: 20,
+    paddingBottom: 16,
   },
   headerMonth: {
     fontSize: 13,
@@ -135,6 +149,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     gap: 16,
+    marginTop: 16,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 12,
@@ -175,81 +190,25 @@ const styles = StyleSheet.create({
     color: ACCENT,
     fontWeight: '300',
   },
-  sectionLabel: {
-    fontSize: 12,
-    color: SUB,
-    letterSpacing: 2,
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 28,
     marginBottom: 12,
     paddingHorizontal: 4,
   },
+  sectionLabel: {
+    fontSize: 12,
+    color: SUB,
+    letterSpacing: 2,
+  },
+  resultCount: {
+    fontSize: 12,
+    color: ACCENT,
+    fontWeight: '600',
+  },
   list: {
-    gap: 14,
-  },
-  entry: {
-    flexDirection: 'row',
-    gap: 16,
-    backgroundColor: CARD,
-    borderRadius: 14,
-    padding: 16,
-  },
-  entryDateColumn: {
-    alignItems: 'center',
-    width: 44,
-    paddingTop: 2,
-  },
-  entryWeekday: {
-    fontSize: 11,
-    color: SUB,
-  },
-  entryDay: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: INK,
-    marginTop: 2,
-  },
-  entryBody: {
-    flex: 1,
-  },
-  entryTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  entryMood: {
-    fontSize: 16,
-  },
-  entryTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    color: INK,
-  },
-  entryExcerpt: {
-    fontSize: 13,
-    color: SUB,
-    marginTop: 6,
-    lineHeight: 20,
-  },
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 32,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: ACCENT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  fabIcon: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    lineHeight: 26,
+    gap: 12,
   },
 });
